@@ -58,6 +58,7 @@ public enum Zsign {
 	///   - customVersion: Custom version for the app bundle
 	///   - adhoc: If the app bundle should be signed using Adhoc (no signing identity)
 	///   - removeProvision: If `embedded.mobileprovision` should be excluded when signing
+	///   - progress: Called with 0...1 as each Mach-O and bundle gets signed
 	/// - Returns: True if its successful
 	static public func sign(
 		appPath: String = "",
@@ -70,6 +71,7 @@ public enum Zsign {
 		customVersion: String = "",
 		adhoc: Bool = false,
 		removeProvision: Bool = false,
+		progress: ((Double) -> Void)? = nil,
 		completion: ((Bool) -> Void)? = nil
 	) -> Bool {
 		if zsign(
@@ -83,6 +85,7 @@ public enum Zsign {
 			customVersion,
 			adhoc,
 			removeProvision,
+			progress,
 			completion.map { callback in
 				{ success in
 					callback(success)

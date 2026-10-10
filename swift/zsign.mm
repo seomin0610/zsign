@@ -178,6 +178,7 @@ int zsign(
 	NSString *bundleversion,
 	bool adhoc,
 	bool excludeprovion,
+	void(^progressHandler)(double progress),
 	void(^completionHandler)(BOOL success)
 ) {
 	ZTimer atimer;
@@ -224,11 +225,16 @@ int zsign(
 	
 	atimer.Reset();
 	ZBundle bundle;
+	if (progressHandler) {
+		bundle.m_fnProgress = [progressHandler](double progress) { progressHandler(progress); };
+	}
 	bool bRet = bundle.SignFolder(&zsa, strFolder, strBundleId, strBundleVersion, strDisplayName, arrDylibFiles, arrDisDylibFiles, bForce, bWeakInject, bEnableCache, excludeprovion);
 	ZLog::PrintV(">>> Signing:\t%s %s\n", strPath.c_str(), (bAdhoc ? " (Ad-hoc)" : ""));
 	atimer.PrintResult(bRet, ">>> Signed %s!", bRet ? "OK" : "Failed");
 	
-	completionHandler(bRet);
+	if (completionHandler) {
+		completionHandler(bRet);
+	}
 	
 	gtimer.Print(">>> Done.");
 	return bRet ? 0 : -1;

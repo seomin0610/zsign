@@ -32,6 +32,7 @@ int zsign(
 	NSString *bundleversion,
 	bool adhoc,
 	bool dontGenerateEmbeddedMobileProvision,
+	void(^progressHandler)(double progress),
 	void(^completionHandler)(BOOL success)
 );
 

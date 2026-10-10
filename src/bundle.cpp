@@ -16,6 +16,8 @@ ZBundle::ZBundle()
 	m_bRemoveExtensions = false;
 	m_bRemoveWatchApp = false;
 	m_bRemoveUISupportedDevices = false;
+	m_nSigned = 0;
+	m_nToSign = 0;
 }
 
 bool ZBundle::FindAppFolder(const string& strFolder, string& strAppFolder)
@@ -306,6 +308,7 @@ bool ZBundle::SignNode(jvalue& jvNode)
 			} else {
 				ZLog::WarnV(">>> Warning: Skipping non-Mach-O file: \t%s\n", strFile.c_str());
 			}
+			ReportProgress();
 		}
 	}
 	
@@ -458,7 +461,15 @@ bool ZBundle::SignNode(jvalue& jvNode)
 		return false;
 	}
 
+	ReportProgress();
 	return true;
+}
+
+void ZBundle::ReportProgress()
+{
+	if (m_fnProgress && m_nToSign > 0) {
+		m_fnProgress((double)++m_nSigned / m_nToSign);
+	}
 }
 
 bool ZBundle::ModifyPluginsBundleId(const string& strOldBundleId, const string& strNewBundleId)
@@ -735,6 +746,9 @@ bool ZBundle::SignFolder(ZSignAsset* pSignAsset,
 	ZLog::PrintV(">>> SubjectCN: \t%s\n", m_pSignAsset->m_strSubjectCN.c_str());
 	ZLog::PrintV(">>> ReadCache: \t%s\n", m_bForceSign ? "NO" : "YES");
 	ZLog::PrintV(">>> Exclude MobileProvision: \t%s\n", bRemoveProvision ? "NO" : "YES");
+
+	m_nSigned = 0;
+	m_nToSign = jvRoot.at("files").size() + jvRoot.at("folders").size() + 1;
 
 	if (SignNode(jvRoot)) {
 		if (bEnableCache) {

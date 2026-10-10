@@ -5,6 +5,7 @@
 #include <vector>
 #include <list>
 #include <set>
+#include <functional>
 
 class ZBundle
 {
@@ -38,6 +39,7 @@ public:
 
 private:
 	bool SignNode(jvalue& jvNode);
+	void ReportProgress();
 	void GetNodeChangedFiles(jvalue& jvNode, bool dontGenerateEmbeddedMobileProvision);
 	void GetChangedFiles(jvalue& jvNode, vector<string>& arrChangedFiles);
 	bool ModifyPluginsBundleId(const string& strOldBundleId, const string& strNewBundleId);
@@ -59,6 +61,8 @@ private:
 	list<ZSignAsset>*	m_pSignAssets;
 	vector<string>	m_arrInjectDylibs;
 	set<string>		m_setRemoveDylibs;
+	size_t			m_nSigned;
+	size_t			m_nToSign;
 
 private:
 	void ApplyAppModifications();
@@ -70,4 +74,5 @@ public:
 	bool		m_bRemoveWatchApp;
 	bool		m_bRemoveUISupportedDevices;
 	string			m_strAppFolder;
+	std::function<void(double)> m_fnProgress;
 };
