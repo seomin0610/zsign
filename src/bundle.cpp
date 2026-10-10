@@ -16,8 +16,9 @@ ZBundle::ZBundle()
 	m_bRemoveExtensions = false;
 	m_bRemoveWatchApp = false;
 	m_bRemoveUISupportedDevices = false;
-	m_nSigned = 0;
-	m_nToSign = 0;
+	m_nBytesDone = 0;
+	m_nBytesTotal = 0;
+	m_dReported = 0;
 }
 
 bool ZBundle::FindAppFolder(const string& strFolder, string& strAppFolder)
@@ -194,6 +195,7 @@ bool ZBundle::GenerateCodeResources(const string& strFolder, jvalue& jvCodeRes)
 		string strSHA1Base64;
 		string strSHA256Base64;
 		ZSHA::SHABase64File(strFile.c_str(), strSHA1Base64, strSHA256Base64);
+		ReportProgress(ZFile::GetFileSize(strFile.c_str()));
 
 #ifdef _WIN32
 		strKey = ic.A2U8(strKey);
@@ -308,7 +310,7 @@ bool ZBundle::SignNode(jvalue& jvNode)
 			} else {
 				ZLog::WarnV(">>> Warning: Skipping non-Mach-O file: \t%s\n", strFile.c_str());
 			}
-			ReportProgress();
+			ReportProgress(ZFile::GetFileSizeV("%s/%s", m_strAppFolder.c_str(), strFile.c_str()));
 		}
 	}
 	
@@ -461,14 +463,22 @@ bool ZBundle::SignNode(jvalue& jvNode)
 		return false;
 	}
 
-	ReportProgress();
+	ReportProgress(ZFile::GetFileSize(strExePath.c_str()));
 	return true;
 }
 
-void ZBundle::ReportProgress()
+void ZBundle::ReportProgress(int64_t nBytes)
 {
-	if (m_fnProgress && m_nToSign > 0) {
-		m_fnProgress((double)++m_nSigned / m_nToSign);
+	m_nBytesDone += nBytes;
+	if (!m_fnProgress || m_nBytesTotal <= 0) {
+		return;
+	}
+
+	// the total is measured before signing grows the files, so 1.0 waits for the real end
+	double dProgress = min(0.99, (double)m_nBytesDone / m_nBytesTotal);
+	if (dProgress - m_dReported >= 0.01) {
+		m_dReported = dProgress;
+		m_fnProgress(dProgress);
 	}
 }
 
@@ -747,10 +757,31 @@ bool ZBundle::SignFolder(ZSignAsset* pSignAsset,
 	ZLog::PrintV(">>> ReadCache: \t%s\n", m_bForceSign ? "NO" : "YES");
 	ZLog::PrintV(">>> Exclude MobileProvision: \t%s\n", bRemoveProvision ? "NO" : "YES");
 
-	m_nSigned = 0;
-	m_nToSign = jvRoot.at("files").size() + jvRoot.at("folders").size() + 1;
+	auto folderBytes = [](const string& strFolder) {
+		int64_t nBytes = 0;
+		ZFile::EnumFolder(strFolder.c_str(), true, NULL, [&](bool bFolder, const string& strPath) {
+			if (!bFolder) {
+				nBytes += ZFile::GetFileSize(strPath.c_str());
+			}
+			return false;
+		});
+		return nBytes;
+	};
+
+	m_nBytesDone = 0;
+	m_dReported = 0;
+	m_nBytesTotal = folderBytes(m_strAppFolder);
+	for (size_t i = 0; i < jvRoot.at("files").size(); i++) {
+		m_nBytesTotal += ZFile::GetFileSizeV("%s/%s", m_strAppFolder.c_str(), jvRoot.at("files").at(i).as_cstr());
+	}
+	for (size_t i = 0; i < jvRoot.at("folders").size(); i++) {
+		m_nBytesTotal += folderBytes(m_strAppFolder + "/" + jvRoot.at("folders").at(i).at("path").as_cstr());
+	}
 
 	if (SignNode(jvRoot)) {
+		if (m_fnProgress) {
+			m_fnProgress(1.0);
+		}
 		if (bEnableCache) {
 			ZFile::CreateFolder("./.zsign_cache");
 			jvRoot.style_write_to_file("./.zsign_cache/%s.json", strCacheName.c_str());
