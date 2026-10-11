@@ -44,6 +44,7 @@ private:
 	void GetChangedFiles(jvalue& jvNode, vector<string>& arrChangedFiles);
 	bool ModifyPluginsBundleId(const string& strOldBundleId, const string& strNewBundleId);
 	bool ModifyBundleInfo(const string& strBundleId, const string& strBundleVersion, const string& strDisplayName);
+	bool ChangeAppIcon();
 
 private:
 	bool FindAppFolder(const string& strFolder, string& strAppFolder);
@@ -60,6 +61,7 @@ private:
 	ZSignAsset*		m_pSignAsset;
 	list<ZSignAsset>*	m_pSignAssets;
 	vector<string>	m_arrInjectDylibs;
+	vector<string>	m_arrInjectDylibNames;
 	set<string>		m_setRemoveDylibs;
 	int64_t			m_nBytesDone;
 	int64_t			m_nBytesTotal;
@@ -71,9 +73,11 @@ private:
 public:
 	bool		m_bEnableDocuments;
 	string		m_strMinVersion;
+	string		m_strIconFile;
 	bool		m_bRemoveExtensions;
 	bool		m_bRemoveWatchApp;
 	bool		m_bRemoveUISupportedDevices;
+	bool		m_bInjectExtensions;
 	string			m_strAppFolder;
 	std::function<void(double)> m_fnProgress;
 };

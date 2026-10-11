@@ -1,5 +1,5 @@
 #include "sha.h"
-#include "base64.h"
+#include "json.h"
 #include <openssl/sha.h>
 
 bool ZSHA::SHA1(uint8_t* data, size_t size, string& strOutput)

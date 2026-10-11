@@ -81,6 +81,15 @@ cd zsign/build/linux
 make clean && make
 ```
 
+#### Linking system minizip/zlib
+
+By default the vendored zlib + minizip sources in `src/third-party/` are compiled in, so no extra packages are needed. Package managers that require unbundled libraries (e.g. Homebrew) can link the system copies instead:
+
+```bash
+make clean && make SYSTEM_MINIZIP=1    # links minizip (requires pkg-config minizip)
+make clean && make SYSTEM_MINIZIP=ng   # links minizip-ng via its minizip compat layer
+```
+
 ### Windows
 
 Open `build/windows/vs2022/zsign.sln` in Visual Studio 2022 and build.
@@ -103,6 +112,7 @@ Options:
   -n, --bundle_name       New bundle display name
   -r, --bundle_version    New bundle version
   -e, --entitlements      New entitlements file
+  -I, --icon              New app icon to replace the primary icon (PNG format)
   -z, --zip_level         Compression level for output ipa (0-9)
   -l, --dylib             Dylib to inject (use multiple -l for multiple dylibs)
   -D, --rm_dylib          Dylib to remove (use multiple -D for multiple)
@@ -118,6 +128,7 @@ Options:
   -E, --rm_extensions     Remove all app extensions (PlugIns/Extensions)
   -W, --rm_watch          Remove watch app from bundle
   -U, --rm_uisd           Remove UISupportedDevices from Info.plist
+  -P, --inject_extensions Also inject -l dylibs into app extensions (PlugIns/Extensions)
   -q, --quiet             Quiet operation
   -v, --version           Show version
   -h, --help              Show help
@@ -155,9 +166,25 @@ zsign -a -o output.ipa demo.ipa
 zsign -k dev.p12 -p 123 -m dev.prov -l demo.dylib -o output.ipa demo.ipa
 ```
 
+**Inject dylib into the app and its extensions:**
+```bash
+# App extensions (PlugIns/*.appex) run as separate processes and don't inherit
+# the main app's injected dylibs, so -P injects into them too. The dylib is kept
+# as a single copy at the app root and referenced from each extension by a
+# relative path (@executable_path/../../demo.dylib).
+zsign -k dev.p12 -p 123 -m dev.prov -P -l demo.dylib -o output.ipa demo.ipa
+```
+
 **Change bundle id and name:**
 ```bash
 zsign -k dev.p12 -p 123 -m dev.prov -b 'com.new.bundle.id' -n 'NewName' -o output.ipa demo.ipa
+```
+
+**Change app icon:**
+```bash
+zsign -k dev.p12 -p 123 -m dev.prov -I newicon.png -o output.ipa demo.ipa
+# replaces the primary icon PNGs referenced by Info.plist and removes
+# CFBundleIconName so the new icon takes effect (a square PNG is recommended)
 ```
 
 **Inject dylib (LC_LOAD_DYLIB) into Mach-O:**
@@ -174,6 +201,7 @@ zsign -w -l "@executable_path/demo.dylib" demo.app/execute
 ```bash
 zsign -k dev.p12 -p 123 -m dev.prov -x ./metadata -o output.ipa demo.ipa
 # outputs ./metadata/metadata.json and ./metadata/<hash>.png
+# Apple-optimized (CgBI) icons are converted to standard PNG automatically
 ```
 
 **Enable Files app integration:**
