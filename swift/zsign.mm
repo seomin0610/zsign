@@ -276,17 +276,13 @@ int checkCert(
 		completionHandler(2, nil, @"Error loading certificate");
 		return -4;
 	}
-	BIO *brother1;
-	unsigned long issuerHash = X509_issuer_name_hash((X509*)cert);
-	if (0x817d2f7a == issuerHash) {
-		brother1 = BIO_new_mem_buf(ZSignAsset::s_szAppleDevCACert, (int)strlen(ZSignAsset::s_szAppleDevCACert));
-	} else if (0x9b16b75c == issuerHash) {
-		brother1 = BIO_new_mem_buf(ZSignAsset::s_szAppleDevCACertG3, (int)strlen(ZSignAsset::s_szAppleDevCACertG3));
-	} else {
+	const char* szIssuerCert = ZSignAsset::WWDRIntermediatePEM(X509_issuer_name_hash((X509*)cert));
+	if (!szIssuerCert) {
 		completionHandler(2, nil, @"Unable to determine issuer of the certificate. It is signed by Apple Developer?");
 		return -2;
 	}
-		
+	BIO *brother1 = BIO_new_mem_buf(szIssuerCert, (int)strlen(szIssuerCert));
+
 	if (!brother1)
 	{
 		completionHandler(2, nil, @"Unable to initialize issuer certificate.");
