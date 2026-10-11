@@ -11,6 +11,7 @@
 extern "C" {
 #endif
 bool p12_password_check(NSString *file, NSString *pass);
+NSData *p12_certificate(NSString *file, NSString *pass);
 void password_check_fix(NSString *path);
 void password_check_fix_free(NSString *path);
 #ifdef __cplusplus

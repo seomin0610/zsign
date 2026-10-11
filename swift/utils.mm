@@ -53,6 +53,39 @@ bool p12_password_check(NSString *file, NSString *pass) {
 	return false;
 }
 
+NSData *p12_certificate(NSString *file, NSString *pass) {
+	BIO *bio = BIO_new_file([file fileSystemRepresentation], "rb");
+	if (!bio) {
+		return nil;
+	}
+
+	OSSL_PROVIDER_load(NULL, "legacy");
+
+	PKCS12 *p12 = d2i_PKCS12_bio(bio, NULL);
+	BIO_free(bio);
+	if (!p12) {
+		return nil;
+	}
+
+	EVP_PKEY *pkey = NULL;
+	X509 *cert = NULL;
+	NSData *der = nil;
+
+	if (PKCS12_parse(p12, [pass UTF8String], &pkey, &cert, NULL) && cert) {
+		unsigned char *buffer = NULL;
+		int length = i2d_X509(cert, &buffer);
+		if (length > 0) {
+			der = [NSData dataWithBytes:buffer length:length];
+		}
+		OPENSSL_free(buffer);
+	}
+
+	X509_free(cert);
+	EVP_PKEY_free(pkey);
+	PKCS12_free(p12);
+	return der;
+}
+
 // This is fucking bullshit IMO.
 //
 // In total, I probably wasted a total of 1.5 hours on this
