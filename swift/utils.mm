@@ -31,6 +31,7 @@ bool p12_password_check(NSString *file, NSString *pass) {
 		return false;
 	}
 	
+	OSSL_PROVIDER_load(NULL, "default");
 	OSSL_PROVIDER_load(NULL, "legacy");
 	
 	PKCS12 *p12 = d2i_PKCS12_bio(bio, NULL);
@@ -59,6 +60,7 @@ NSData *p12_certificate(NSString *file, NSString *pass) {
 		return nil;
 	}
 
+	OSSL_PROVIDER_load(NULL, "default");
 	OSSL_PROVIDER_load(NULL, "legacy");
 
 	PKCS12 *p12 = d2i_PKCS12_bio(bio, NULL);
