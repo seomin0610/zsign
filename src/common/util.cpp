@@ -76,6 +76,25 @@ uint32_t ZUtil::ByteAlign(uint32_t uValue, uint32_t uAlign)
 	return (uValue + (uAlign - uValue % uAlign));
 }
 
+void ZUtil::ParallelFor(size_t uCount, const function<void(size_t)>& fn)
+{
+	atomic<size_t> uNext(0);
+	auto worker = [&]() {
+		for (size_t i; (i = uNext++) < uCount;) {
+			fn(i);
+		}
+	};
+	vector<thread> arrThreads;
+	size_t uThreads = min<size_t>(uCount, max(1u, thread::hardware_concurrency()));
+	for (size_t i = 1; i < uThreads; i++) {
+		arrThreads.emplace_back(worker);
+	}
+	worker();
+	for (thread& t : arrThreads) {
+		t.join();
+	}
+}
+
 const char* ZUtil::StringFormatV(string& strFormat, const char* szFormatArgs, ...)
 {
 	FORMAT_V(szFormatArgs, szFormat);

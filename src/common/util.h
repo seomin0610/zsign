@@ -13,6 +13,7 @@ public:
 	static time_t		GetUnixStamp();
 	static uint64_t 	GetMicroSecond();
 	static uint32_t		ByteAlign(uint32_t uValue, uint32_t uAlign);
+	static void			ParallelFor(size_t uCount, const function<void(size_t)>& fn);
 	static const char*	GetBaseName(const char* path);
 	static int			builtin_clzll(uint64_t x);
 	static uint16_t		Swap(uint16_t value);

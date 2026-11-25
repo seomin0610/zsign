@@ -4,7 +4,6 @@
 #include "openssl.h"
 #include "signing.h"
 #include <algorithm>
-#include <openssl/sha.h>
 
 void ZSign::_DERLength(string& strBlob, uint64_t uLength)
 {
@@ -586,25 +585,18 @@ bool ZSign::SlotBuildCodeDirectory(bool bAlternate,
 	if (NULL != pCodeSlotsData && (uCodeSlotsDataLength == uCodeSlots * cdHeader.hashSize)) { //use exists
 		strOutput.append((const char*)pCodeSlotsData, uCodeSlotsDataLength);
 	} else {
-		uint8_t hash[32]; // large enough for both SHA1 (20) and SHA256 (32)
-		for (uint32_t i = 0; i < uPages; i++) {
+		size_t uSlotsOffset = strOutput.size();
+		strOutput.resize(uSlotsOffset + uCodeSlotsLength);
+		uint8_t* pSlots = (uint8_t*)&strOutput[uSlotsOffset];
+		ZUtil::ParallelFor(uCodeSlots, [&](size_t i) {
+			uint8_t* pPage = pCodeBase + (size_t)uPageSize * i;
+			size_t uLength = (i < uPages) ? uPageSize : uRemain;
 			if (1 == cdHeader.hashType) {
-				::SHA1(pCodeBase + uPageSize * i, uPageSize, hash);
-				strOutput.append((const char*)hash, 20);
+				ZSHA::SHA1(pPage, uLength, pSlots + i * 20);
 			} else {
-				::SHA256(pCodeBase + uPageSize * i, uPageSize, hash);
-				strOutput.append((const char*)hash, 32);
+				ZSHA::SHA256(pPage, uLength, pSlots + i * 32);
 			}
-		}
-		if (uRemain > 0) {
-			if (1 == cdHeader.hashType) {
-				::SHA1(pCodeBase + uPageSize * uPages, uRemain, hash);
-				strOutput.append((const char*)hash, 20);
-			} else {
-				::SHA256(pCodeBase + uPageSize * uPages, uRemain, hash);
-				strOutput.append((const char*)hash, 32);
-			}
-		}
+		});
 	}
 
 	return true;

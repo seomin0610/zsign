@@ -1,12 +1,52 @@
 #include "sha.h"
 #include "json.h"
+
+#ifdef __APPLE__
+#include <CommonCrypto/CommonDigest.h>
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
+// the OpenSSL build for Apple platforms is no-asm, CommonCrypto hashes on the hardware SHA units
+void ZSHA::SHA1(const uint8_t* data, size_t size, uint8_t* md)
+{
+	CC_SHA1_CTX ctx;
+	CC_SHA1_Init(&ctx);
+	for (size_t off = 0; off < size; off += 1u << 30) {
+		CC_SHA1_Update(&ctx, data + off, (CC_LONG)min<size_t>(size - off, 1u << 30));
+	}
+	CC_SHA1_Final(md, &ctx);
+}
+
+void ZSHA::SHA256(const uint8_t* data, size_t size, uint8_t* md)
+{
+	CC_SHA256_CTX ctx;
+	CC_SHA256_Init(&ctx);
+	for (size_t off = 0; off < size; off += 1u << 30) {
+		CC_SHA256_Update(&ctx, data + off, (CC_LONG)min<size_t>(size - off, 1u << 30));
+	}
+	CC_SHA256_Final(md, &ctx);
+}
+
+#pragma clang diagnostic pop
+#else
 #include <openssl/sha.h>
+
+void ZSHA::SHA1(const uint8_t* data, size_t size, uint8_t* md)
+{
+	::SHA1(data, size, md);
+}
+
+void ZSHA::SHA256(const uint8_t* data, size_t size, uint8_t* md)
+{
+	::SHA256(data, size, md);
+}
+#endif
 
 bool ZSHA::SHA1(uint8_t* data, size_t size, string& strOutput)
 {
 	strOutput.clear();
 	uint8_t hash[20];
-	::SHA1(data, size, hash);
+	ZSHA::SHA1(data, size, hash);
 	strOutput.append((const char*)hash, 20);
 	return true;
 }
@@ -15,7 +55,7 @@ bool ZSHA::SHA256(uint8_t* data, size_t size, string& strOutput)
 {
 	strOutput.clear();
 	uint8_t hash[32];
-	::SHA256(data, size, hash);
+	ZSHA::SHA256(data, size, hash);
 	strOutput.append((const char*)hash, 32);
 	return true;
 }

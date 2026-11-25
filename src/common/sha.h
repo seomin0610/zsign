@@ -6,6 +6,8 @@ class ZSHA
 {
 public:
 
+	static void SHA1(const uint8_t* data, size_t size, uint8_t* md);
+	static void SHA256(const uint8_t* data, size_t size, uint8_t* md);
 	static bool SHA1(uint8_t* data, size_t size, string& strOutput);
 	static bool SHA1(const string& strData, string& strOutput);
 	static bool SHA256(uint8_t* data, size_t size, string& strOutput);

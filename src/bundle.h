@@ -66,6 +66,7 @@ private:
 	int64_t			m_nBytesDone;
 	int64_t			m_nBytesTotal;
 	double			m_dReported;
+	mutex			m_mtxProgress;
 
 private:
 	void ApplyAppModifications();

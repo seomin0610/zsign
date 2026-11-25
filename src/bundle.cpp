@@ -116,16 +116,20 @@ bool ZBundle::GetObjectsToSign(const string& strFolder, jvalue& jvInfo)
 		return depthA > depthB;
 	});
 	
+	set<string> setBundleExes;
+	setBundleExes.insert(jvInfo["bundle_executable"].as_string());
 	for (const string& bundlePath : allBundles) {
 		jvalue jvNode;
 		if (GetSignFolderInfo(bundlePath, jvNode)) {
+			setBundleExes.insert(jvNode["path"].as_string() + "/" + jvNode["bundle_executable"].as_string());
 			jvInfo["folders"].push_back(jvNode);
 		}
 	}
 	
 	ZFile::EnumFolder(strFolder.c_str(), true, NULL, [&](bool bFolder, const string& strPath) {
 		if (bFolder || string::npos != strPath.find(".dSYM") ||
-			string::npos != strPath.find("_WatchKitStub")) {
+			string::npos != strPath.find("_WatchKitStub") ||
+			setBundleExes.count(strPath.substr(m_strAppFolder.size() + 1))) {
 			return false;
 		}
 		bool bMachO = false;
@@ -183,19 +187,28 @@ bool ZBundle::GenerateCodeResources(const string& strFolder, jvalue& jvCodeRes)
 	jvCodeRes["files"] = jvalue(jvalue::E_OBJECT);
 	jvCodeRes["files2"] = jvalue(jvalue::E_OBJECT);
 
-	for (string strKey : setFiles) {
+	vector<string> arrKeys;
+	for (const string& strKey : setFiles) {
 		if (m_bRemoveProvision && strKey == "embedded.mobileprovision") {
 			string strProvFile = strFolder + "/embedded.mobileprovision";
 			remove(strProvFile.c_str());
 			ZLog::Print(">>> Removed embedded.mobileprovision\n");
 			continue;
 		}
+		arrKeys.push_back(strKey);
+	}
 
-		string strFile = strFolder + "/" + strKey;
-		string strSHA1Base64;
-		string strSHA256Base64;
-		ZSHA::SHABase64File(strFile.c_str(), strSHA1Base64, strSHA256Base64);
+	vector<pair<string, string>> arrHashes(arrKeys.size());
+	ZUtil::ParallelFor(arrKeys.size(), [&](size_t i) {
+		string strFile = strFolder + "/" + arrKeys[i];
+		ZSHA::SHABase64File(strFile.c_str(), arrHashes[i].first, arrHashes[i].second);
 		ReportProgress(ZFile::GetFileSize(strFile.c_str()));
+	});
+
+	for (size_t i = 0; i < arrKeys.size(); i++) {
+		string strKey = arrKeys[i];
+		const string& strSHA1Base64 = arrHashes[i].first;
+		const string& strSHA256Base64 = arrHashes[i].second;
 
 #ifdef _WIN32
 		strKey = ic.A2U8(strKey);
@@ -485,6 +498,7 @@ bool ZBundle::SignNode(jvalue& jvNode)
 
 void ZBundle::ReportProgress(int64_t nBytes)
 {
+	lock_guard<mutex> lock(m_mtxProgress);
 	m_nBytesDone += nBytes;
 	if (!m_fnProgress || m_nBytesTotal <= 0) {
 		return;

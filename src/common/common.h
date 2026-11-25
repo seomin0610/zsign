@@ -36,6 +36,8 @@
 #include <set>
 #include <map>
 #include <mutex>
+#include <atomic>
+#include <thread>
 #include <vector>
 #include <string>
 #include <memory>
