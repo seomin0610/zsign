@@ -46,6 +46,25 @@ public enum Zsign {
 	static public func changeDylibPath(appExecutable: String, for old: String, with new: String) -> Bool {
 		ChangeDylibPath(appExecutable, old, new)
 	}
+	/// Extracts a zip archive on every core
+	/// - Parameters:
+	///   - zipPath: Path to the archive
+	///   - destination: Existing folder to extract into
+	///   - progress: Called with 0...1 as entries finish
+	/// - Returns: 0 when extracted, 1 when the archive needs a generic unzipper (nothing was written), -1 on failure
+	static public func extract(zipPath: String, to destination: String, progress: ((Double) -> Void)? = nil) -> Int32 {
+		ExtractZip(zipPath, destination, progress)
+	}
+	/// Stores a folder into an uncompressed zip archive on every core
+	/// - Parameters:
+	///   - folder: Folder whose contents are archived
+	///   - zipPath: Archive to create
+	///   - prefix: Prepended to every entry name (i.e. `Payload/Feather.app/`)
+	///   - progress: Called with 0...1 as files finish
+	/// - Returns: True if its successful
+	static public func archive(folder: String, to zipPath: String, prefix: String, progress: ((Double) -> Void)? = nil) -> Bool {
+		ArchiveZip(folder, zipPath, prefix, progress)
+	}
 	/// Signs a folder (application bundle) using Zsign
 	/// - Parameters:
 	///   - appPath: Relative path to app bundle

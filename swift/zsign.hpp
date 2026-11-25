@@ -20,6 +20,8 @@ bool InjectDyLib(NSString *filePath, NSString *dylibPath, bool weakInject);
 bool UninstallDylibs(NSString *filePath, NSArray<NSString *> *dylibPathsArray);
 NSArray<NSString *> *ListDylibs(NSString *filePath);
 bool ChangeDylibPath(NSString *filePath, NSString *oldPath, NSString *newPath);
+int ExtractZip(NSString *zipPath, NSString *destPath, void(^progressHandler)(double progress));
+bool ArchiveZip(NSString *folderPath, NSString *zipPath, NSString *prefix, void(^progressHandler)(double progress));
 
 int zsign(
 	NSString *app,

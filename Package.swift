@@ -59,6 +59,7 @@ let package = Package(
 			],
 			linkerSettings: [
 				.linkedFramework("OpenSSL"),
+				.linkedLibrary("z"),
 			]
 		),
 		.target(

@@ -41,6 +41,8 @@ public:
 	static bool		EnumFolder(const char* szFolder, bool bRecursive, enum_folder_callback filter, enum_folder_callback callback);
 
 	static bool		PathRemoveFileSpec(string& path);
+	static int		ExtractZip(const char* szZip, const char* szFolder, const function<void(double)>& fnProgress);
+	static bool		ArchiveZip(const char* szFolder, const char* szZip, const char* szPrefix, const function<void(double)>& fnProgress);
 
 private:
 	static int RemoveFolderCallBack(const char* fpath, const struct stat* sb, int typeflag, struct FTW* ftwbuf);

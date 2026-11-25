@@ -167,6 +167,26 @@ bool ChangeDylibPath(NSString *filePath, NSString *oldPath, NSString *newPath) {
 	}
 }
 
+int ExtractZip(NSString *zipPath, NSString *destPath, void(^progressHandler)(double progress)) {
+	@autoreleasepool {
+		function<void(double)> fnProgress;
+		if (progressHandler) {
+			fnProgress = [progressHandler](double progress) { progressHandler(progress); };
+		}
+		return ZFile::ExtractZip(zipPath.fileSystemRepresentation, destPath.fileSystemRepresentation, fnProgress);
+	}
+}
+
+bool ArchiveZip(NSString *folderPath, NSString *zipPath, NSString *prefix, void(^progressHandler)(double progress)) {
+	@autoreleasepool {
+		function<void(double)> fnProgress;
+		if (progressHandler) {
+			fnProgress = [progressHandler](double progress) { progressHandler(progress); };
+		}
+		return ZFile::ArchiveZip(folderPath.fileSystemRepresentation, zipPath.fileSystemRepresentation, prefix.UTF8String, fnProgress);
+	}
+}
+
 int zsign(
 	NSString *app,
 	NSString *prov,
