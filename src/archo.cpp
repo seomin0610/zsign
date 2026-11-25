@@ -324,6 +324,31 @@ void ZArchO::PrintInfo()
 	ZLog::Print("------------------------------------------------------------------\n");
 }
 
+// a literal "TEAM.*" application-identifier breaks the Files picker (open in place does nothing)
+static string ExpandWildcardAppId(const string& strEntitleData, const string& strBundleId)
+{
+	jvalue jvEnt;
+	if (strBundleId.empty() || !jvEnt.read_plist(strEntitleData) || !jvEnt.has("application-identifier")) {
+		return strEntitleData;
+	}
+
+	string strAppId = jvEnt["application-identifier"].as_string();
+	size_t pos = strAppId.find('.');
+	if (strAppId.empty() || strAppId.back() != '*' || pos == string::npos) {
+		return strEntitleData;
+	}
+
+	string strPrefix = strAppId.substr(pos + 1, strAppId.size() - pos - 2);
+	if (strBundleId.compare(0, strPrefix.size(), strPrefix) != 0) {
+		return strEntitleData;
+	}
+
+	jvEnt["application-identifier"] = strAppId.substr(0, pos + 1) + strBundleId;
+	string strOutput;
+	jvEnt.style_write_plist(strOutput);
+	return strOutput;
+}
+
 bool ZArchO::BuildCodeSignature(ZSignAsset* pSignAsset, 
 	bool bForce, 
 	const string& strBundleId, 
@@ -338,9 +363,10 @@ bool ZArchO::BuildCodeSignature(ZSignAsset* pSignAsset,
 	string strDerEntitlementsSlot;
 
 	string strEmptyEntitlements = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict/>\n</plist>\n";
+	string strEntitleData = IsExecute() ? ExpandWildcardAppId(pSignAsset->m_strEntitleData, strBundleId) : "";
 	ZSign::SlotBuildRequirements(strBundleId, pSignAsset->m_strSubjectCN, strRequirementsSlot);
-	ZSign::SlotBuildEntitlements(IsExecute() ? pSignAsset->m_strEntitleData : strEmptyEntitlements, strEntitlementsSlot);
-	ZSign::SlotBuildDerEntitlements(IsExecute() ? pSignAsset->m_strEntitleData : "", strDerEntitlementsSlot);
+	ZSign::SlotBuildEntitlements(IsExecute() ? strEntitleData : strEmptyEntitlements, strEntitlementsSlot);
+	ZSign::SlotBuildDerEntitlements(strEntitleData, strDerEntitlementsSlot);
 
 	string strRequirementsSlotSHA1;
 	string strRequirementsSlotSHA256;
