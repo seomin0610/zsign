@@ -1,4 +1,7 @@
 #include "log.h"
+#ifdef __APPLE__
+#include <os/log.h>
+#endif
 
 
 int ZLog::g_nLogLevel = ZLog::E_INFO;
@@ -45,7 +48,16 @@ void ZLog::_Print(const char* szLog, int nColor)
 	if (NULL != szColor) {
 		write(STDOUT_FILENO, "\033[0m", 4);
 	}
-	
+
+#ifdef __APPLE__
+	static os_log_t s_log = os_log_create("zsign", "Zsign");
+	string strLog = szLog;
+	while (!strLog.empty() && '\n' == strLog.back()) {
+		strLog.pop_back();
+	}
+	os_log_with_type(s_log, (12 == nColor) ? OS_LOG_TYPE_ERROR : OS_LOG_TYPE_DEFAULT, "%{public}s", strLog.c_str());
+#endif
+
 #endif
 }
 
