@@ -126,36 +126,42 @@ bool ZBundle::GetObjectsToSign(const string& strFolder, jvalue& jvInfo)
 		}
 	}
 	
+	vector<string> arrCandidates;
 	ZFile::EnumFolder(strFolder.c_str(), true, NULL, [&](bool bFolder, const string& strPath) {
 		if (bFolder || string::npos != strPath.find(".dSYM") ||
 			string::npos != strPath.find("_WatchKitStub") ||
 			setBundleExes.count(strPath.substr(m_strAppFolder.size() + 1))) {
 			return false;
 		}
-		bool bMachO = false;
-		{
-			FILE* fp = NULL;
-#ifdef _WIN32
-			fopen_s(&fp, strPath.c_str(), "rb");
-#else
-			fp = fopen(strPath.c_str(), "rb");
-#endif
-			if (fp) {
-				uint32_t magic = 0;
-				if (1 == fread(&magic, sizeof(magic), 1, fp)) {
-					bMachO = (magic == MH_MAGIC || magic == MH_CIGAM ||
-							  magic == MH_MAGIC_64 || magic == MH_CIGAM_64 ||
-							  magic == FAT_MAGIC || magic == FAT_CIGAM);
-				}
-				fclose(fp);
-			}
-		}
-		if (bMachO) {
-			jvInfo["files"].push_back(strPath.substr(m_strAppFolder.size() + 1));
-		}
+		arrCandidates.push_back(strPath);
 		return false;
 	});
-	
+
+	vector<char> arrMachO(arrCandidates.size(), 0);
+	ZUtil::ParallelFor(arrCandidates.size(), [&](size_t i) {
+		FILE* fp = NULL;
+#ifdef _WIN32
+		fopen_s(&fp, arrCandidates[i].c_str(), "rb");
+#else
+		fp = fopen(arrCandidates[i].c_str(), "rb");
+#endif
+		if (fp) {
+			uint32_t magic = 0;
+			if (1 == fread(&magic, sizeof(magic), 1, fp)) {
+				arrMachO[i] = (magic == MH_MAGIC || magic == MH_CIGAM ||
+							   magic == MH_MAGIC_64 || magic == MH_CIGAM_64 ||
+							   magic == FAT_MAGIC || magic == FAT_CIGAM);
+			}
+			fclose(fp);
+		}
+	});
+
+	for (size_t i = 0; i < arrCandidates.size(); i++) {
+		if (arrMachO[i]) {
+			jvInfo["files"].push_back(arrCandidates[i].substr(m_strAppFolder.size() + 1));
+		}
+	}
+
 	return true;
 }
 

@@ -414,6 +414,7 @@ int64_t ZFile::GetFileSize(FILE* fp)
 
 int64_t ZFile::GetFileSize(const char* szPath)
 {
+#ifdef _WIN32
 	int64_t size = 0;
 	FILE* fp = NULL;
 	_fopen64(fp, szPath, "rb");
@@ -422,6 +423,10 @@ int64_t ZFile::GetFileSize(const char* szPath)
 		fclose(fp);
 	}
 	return size;
+#else
+	struct stat st;
+	return (0 == stat(szPath, &st) && S_ISREG(st.st_mode)) ? (int64_t)st.st_size : 0;
+#endif
 }
 
 int64_t ZFile::GetFileSizeV(const char* szPath, ...)
