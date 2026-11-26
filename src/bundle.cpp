@@ -296,11 +296,11 @@ void ZBundle::GetChangedFiles(jvalue& jvNode, vector<string>& arrChangedFiles)
 	}
 }
 
-void ZBundle::GetNodeChangedFiles(jvalue& jvNode, bool excludeProvisioning)
+void ZBundle::GetNodeChangedFiles(jvalue& jvNode, bool includeProvisioning)
 {
 	if (jvNode.has("folders")) {
 		for (size_t i = 0; i < jvNode["folders"].size(); i++) {
-			GetNodeChangedFiles(jvNode["folders"][i], excludeProvisioning);
+			GetNodeChangedFiles(jvNode["folders"][i], includeProvisioning);
 		}
 	}
 
@@ -310,7 +310,7 @@ void ZBundle::GetNodeChangedFiles(jvalue& jvNode, bool excludeProvisioning)
 		jvNode["changed"].push_back(arrChangedFiles[i]);
 	}
 	
-	if (excludeProvisioning) {
+	if (includeProvisioning) {
 		if ("/" == jvNode["path"]) { // root
 			jvNode["changed"].push_back("embedded.mobileprovision");
 		}
@@ -870,7 +870,7 @@ bool ZBundle::SignFolder(ZSignAsset* pSignAsset,
 
 	ZFile::RemoveFileV("%s/embedded.mobileprovision", m_strAppFolder.c_str());
 	if (!pSignAsset->m_strProvData.empty()) {
-		if (bRemoveProvision) {
+		if (!bRemoveProvision) {
 			if (!ZFile::WriteFileV(pSignAsset->m_strProvData, "%s/embedded.mobileprovision", m_strAppFolder.c_str())) { // embedded.mobileprovision
 				ZLog::ErrorV(">>> Can't write embedded.mobileprovision!\n");
 				return false;
@@ -906,7 +906,7 @@ bool ZBundle::SignFolder(ZSignAsset* pSignAsset,
 		if (!GetObjectsToSign(m_strAppFolder, jvRoot)) {
 			return false;
 		}
-		GetNodeChangedFiles(jvRoot, bRemoveProvision);
+		GetNodeChangedFiles(jvRoot, !bRemoveProvision);
 	} else {
 		jvRoot.read_from_file("./.zsign_cache/%s.json", strCacheName.c_str());
 	}
@@ -925,7 +925,7 @@ bool ZBundle::SignFolder(ZSignAsset* pSignAsset,
 	ZLog::PrintV(">>> TeamId: \t%s\n", m_pSignAsset->m_strTeamId.c_str());
 	ZLog::PrintV(">>> SubjectCN: \t%s\n", m_pSignAsset->m_strSubjectCN.c_str());
 	ZLog::PrintV(">>> ReadCache: \t%s\n", m_bForceSign ? "NO" : "YES");
-	ZLog::PrintV(">>> Exclude MobileProvision: \t%s\n", bRemoveProvision ? "NO" : "YES");
+	ZLog::PrintV(">>> Exclude MobileProvision: \t%s\n", bRemoveProvision ? "YES" : "NO");
 
 	auto folderBytes = [](const string& strFolder) {
 		int64_t nBytes = 0;
